@@ -30,17 +30,18 @@ def main():
     }
 
     ofx = OFX(mapping)
-    records = read_csv(args.source, has_header=True, delimiter=';')
+    # filter out "Varaus" records from csv file
+    records = filter(lambda x: x['Kirjauspäivä'] != "Varaus", read_csv(args.source, has_header=True, delimiter=';'))
     groups = ofx.gen_groups(records)
     trxns = ofx.gen_trxns(groups)
     cleaned_trxns = ofx.clean_trxns(trxns)
     data = utils.gen_data(cleaned_trxns)
     content = it.chain([ofx.header(), ofx.gen_body(data), ofx.footer()])
 
-    dest = open(f'{src.cwd()}/{src.stem}.ofx', "w", encoding='utf-8')
+    dest = open(f'{src.parent}/{src.stem}.ofx', "w", encoding='utf-8')
     try:
         res = write(dest, IterStringIO(content))
-        print(f'Created {dest.name}')
+        print(dest.name)
     except KeyError as err:
         msg = "Field %s is missing from file. Check `mapping` option." % err
     except TypeError as err:
